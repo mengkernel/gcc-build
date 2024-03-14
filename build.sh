@@ -226,6 +226,10 @@ git_push(){
   BINUTILS_VERSION="$(${PREFIX}/bin/aarch64-linux-gnu-ld --version | head -n1 | cut -d' ' -f6)"
   MESSAGE="GCC: ${GCC_VERSION}-${BUILD_DATE}, Binutils: ${BINUTILS_VERSION}"
 
+  # symlink liblto_plugin.so
+  cd ${PREFIX}/lib/bfd-plugins
+  ln -sr ../../libexec/gcc/aarch64-linux-gnu/${GCC_VERSION}/liblto_plugin.so .
+
   git config --global user.name github-actions[bot]
   git config --global user.email github-actions[bot]@users.noreply.github.com
   if [ "${IS_MASTER}" == "master" ]; then
