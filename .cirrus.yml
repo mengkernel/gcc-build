@@ -11,7 +11,7 @@ container:
 task:
   name: Build GCC
   timeout_in: 120m
-  only_if: $CIRRUS_BRANCH == 'main'
+  only_if: $CIRRUS_BRANCH == 'test'
   script:
     - ./resources.sh
     - ./build.sh
