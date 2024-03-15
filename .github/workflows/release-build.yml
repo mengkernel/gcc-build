@@ -4,9 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  GITHUB_EMAIL: ${{ secrets.EMAIL }}
   GITHUB_TOKEN: ${{ secrets.API_TOKEN_GITHUB }}
-  GITHUB_USER: ${{ secrets.USERNAME }}
   BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   CHAT_ID: ${{ secrets.CHAT }}
 
