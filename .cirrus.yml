@@ -4,6 +4,7 @@ env:
   GITHUB_TOKEN: ENCRYPTED[c2bd9a4f0b540acd69bb206eb0e3afd7e62096572fc1c765a80022690948751f9a594796449f1d9a5377cf814cf1c328]
   TZ: "Asia/Jakarta"
   CIRRUS_CLONE_DEPTH: 1
+  GCC_IGNORE_WERROR: 1
 container:
   image: diazaji/debian:gcc
   cpu: 8
@@ -11,7 +12,7 @@ container:
 task:
   name: Build GCC
   timeout_in: 120m
-  only_if: $CIRRUS_BRANCH == 'main'
+  only_if: $CIRRUS_BRANCH == 'master'
   script:
-    - ./resources.sh gcc10
-    - ./build.sh gcc10
+    - ./resources.sh
+    - ./build.sh

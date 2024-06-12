@@ -31,8 +31,8 @@ download() {
         git clone --depth=1 -b releases/gcc-10 https://github.com/Diaz1401/gcc gcc
         git clone --depth=1 -b v1.5.6 https://github.com/facebook/zstd zstd
     else
-        git clone --depth=1 -b binutils-2_42-branch https://github.com/Diaz1401/binutils-gdb.git binutils
-        git clone --depth=1 -b releases/gcc-13 https://github.com/Diaz1401/gcc gcc
+        git clone --depth=1 -b binutils-2_42 git://sourceware.org/git/binutils-gdb.git binutils
+        git clone --depth=1 -b releases/gcc-14.1.0 git://gcc.gnu.org/git/gcc.git gcc
         git clone --depth=1 -b v1.5.6 https://github.com/facebook/zstd zstd
     fi
     sed -i '/^development=/s/true/false/' binutils/bfd/development.sh
