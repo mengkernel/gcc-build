@@ -39,6 +39,11 @@ download() {
     cd gcc
     ./contrib/download_prerequisites
     cd -
+    mkdir kernel
+    cd kernel
+    git init .
+    git remote add origin https://github.com/Mengkernel/kernel_xiaomi_sm8250.git
+    cd -
 }
 
 download

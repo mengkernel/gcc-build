@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0
 # Author: Vaisakh Murali
-set -e
 
 echo "*****************************************"
 echo "* Building Bare-Metal Bleeding Edge GCC *"
@@ -13,37 +12,30 @@ PREFIX="${WORK_DIR}/install"
 PREFIX_PGO="${WORK_DIR}/pgo"
 PROFILES="${PREFIX_PGO}/profiles"
 mkdir -p profiles
-OPT_FLAGS="-pipe" # -O3 -flto=${NPROC} -fipa-pta -fgraphite -fgraphite-identity -floop-nest-optimize -fno-semantic-interposition -ffunction-sections -fdata-sections -Wl,--gc-sections"
+OPT_FLAGS="-pipe -O3 -flto=${NPROC} -fipa-pta -fgraphite -fgraphite-identity -floop-nest-optimize -fno-semantic-interposition -ffunction-sections -fdata-sections -Wl,--gc-sections"
 GEN_FLAGS="-fprofile-generate=${PROFILES}"
-USE_FLAGS="-fprofile-use=${PROFILES} -Wno-error=coverage-mismatch"
+USE_FLAGS="-fprofile-use=${PROFILES} -fprofile-correction -fprofile-partial-training -Wno-error=coverage-mismatch"
 BUILD_DATE="$(cat ${WORK_DIR}/gcc/gcc/DATESTAMP)"
 BUILD_DAY="$(date "+%d %B %Y")"
 BUILD_TAG="$(date +%Y%m%d-%H%M-%Z)"
-ARCH=(aarch64-linux-gnu x86_64-linux-gnu arm-linux-gnueabihf)
-TARGETS=(${ARCH[0]})
+TARGETS=(aarch64-linux-gnu) # x86_64-linux-gnu
 HEAD_SCRIPT="$(git log -1 --oneline)"
 HEAD_GCC="$(git --git-dir gcc/.git log -1 --oneline)"
 HEAD_BINUTILS="$(git --git-dir binutils/.git log -1 --oneline)"
 PKG_VERSION="CAT"
 MASTER=false
-GCC10=false
 FINAL=false
 for ARGS in $@; do
     case $ARGS in
     master)
-        GCC10=false MASTER=true
-        ;;
-    gcc10)
-        GCC10=true MASTER=false
-        ;;
-    *)
-        GCC10=false MASTER=false
+        MASTER=true
         ;;
     esac
 done
+
 export PKG_VERSION WORK_DIR NPROC PREFIX OPT_FLAGS \
     BUILD_DATE BUILD_DAY BUILD_TAG TARGETS HEAD_SCRIPT \
-    HEAD_GCC HEAD_BINUTILS MASTER GCC10 FINAL ARCH PROFILES \
+    HEAD_GCC HEAD_BINUTILS MASTER FINAL PROFILES \
     PREFIX_PGO GEN_FLAGS USE_FLAGS
 
 send_info() {
@@ -65,12 +57,12 @@ build_zstd() {
     #  send_info "<b>GitHub Action : </b><pre>Zstd build started . . .</pre>"
     mkdir ${WORK_DIR}/build-zstd
     cd ${WORK_DIR}/build-zstd
-    cmake ${WORK_DIR}/zstd/build/cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" |& tee -a build.log
+    cmake ${WORK_DIR}/zstd/build/cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}/zstd" |& tee -a build.log
     make -j${NPROC} |& tee -a build.log
     make install -j${NPROC} |& tee -a build.log
 
     # check Zstd build status
-    if [ -f "${PREFIX}/bin/zstd" ]; then
+    if [ -f "${PREFIX}/zstd/bin/zstd" ]; then
         rm -rf ${WORK_DIR}/build-zstd
         #    send_info "<b>GitHub Action : </b><pre>Zstd build finished ! ! !</pre>"
         cd -
@@ -83,7 +75,10 @@ build_zstd() {
 }
 
 build_binutils() {
+    CURENT_TARGET=${1}
+
     #  send_info "<b>GitHub Action : </b><pre>Binutils build started . . .</pre><b>Target : </b><pre>[${TARGET}]</pre>"
+
     if ${FINAL}; then
         rm -rf ${WORK_DIR}/build-binutils
     fi
@@ -116,8 +111,8 @@ build_binutils() {
         --enable-plugins \
         --enable-threads \
         --enable-64-bit-bfd \
-        --prefix=${PREFIX_ADD}/${TARGET} \
-        --target=${TARGET} \
+        --prefix=${PREFIX_ADD}/${CURENT_TARGET} \
+        --target=${CURENT_TARGET} \
         --with-pkgversion="${PKG_VERSION} Binutils" \
         --with-sysroot \
         --with-system-zlib \
@@ -125,7 +120,7 @@ build_binutils() {
     make -j${NPROC} |& tee -a build.log
     make install -j${NPROC} |& tee -a build.log
     # check Binutils build status
-    if [ -f "${PREFIX_ADD}/${TARGET}/bin/${TARGET}-ld" ]; then
+    if [ -f "${PREFIX_ADD}/${CURENT_TARGET}/bin/${CURENT_TARGET}-ld" ]; then
         #    send_info "<b>GitHub Action : </b><pre>Binutils build finished ! ! !</pre>"
         cd -
     else
@@ -138,6 +133,9 @@ build_binutils() {
 
 build_gcc() {
     #  send_info "<b>GitHub Action : </b><pre>GCC build started . . .</pre><b>Target : </b><pre>[${TARGET}]</pre>"
+
+    CURENT_TARGET=${1}
+
     if ${FINAL}; then
         rm -rf ${WORK_DIR}/build-gcc
     fi
@@ -148,17 +146,12 @@ build_gcc() {
     gcc -v |& tee -a build.log
     ld -v |& tee -a build.log
 
-    case $TARGET in
+    case ${CURENT_TARGET} in
     x86_64*)
         EXTRA_CONF="--without-cuda-driver"
         ;;
     aarch64*)
-        EXTRA_CONF="--enable-fix-cortex-a53-835769 \
-            --enable-fix-cortex-a53-843419 \
-            --with-headers=/usr/include"
-        ;;
-    arm*)
-        EXTRA_CONF="--with-headers=/usr/include"
+        EXTRA_CONF="--enable-fix-cortex-a53-835769 --enable-fix-cortex-a53-843419"
         ;;
     esac
 
@@ -195,10 +188,11 @@ build_gcc() {
         --enable-languages=c,c++ \
         --enable-linux-futex \
         --enable-threads=posix \
-        --prefix=${PREFIX_ADD}/${TARGET} \
-        --target=${TARGET} \
+        --prefix=${PREFIX_ADD}/${CURENT_TARGET} \
+        --target=${CURENT_TARGET} \
         --with-gnu-as \
         --with-gnu-ld \
+        --with-headers=/usr/include \
         --with-newlib \
         --with-pkgversion="${PKG_VERSION} GCC" \
         --with-sysroot \
@@ -210,7 +204,7 @@ build_gcc() {
     make install-target-libgcc -j${NPROC} |& tee -a build.log
 
     # check GCC build status
-    if [ -f "${PREFIX_ADD}/${TARGET}/bin/${TARGET}-gcc" ]; then
+    if [ -f "${PREFIX_ADD}/${CURENT_TARGET}/bin/${CURENT_TARGET}-gcc" ]; then
         #    send_info "<b>GitHub Action : </b><pre>GCC build finished ! ! !</pre>"
         cd -
     else
@@ -227,7 +221,7 @@ strip_binaries() {
     find install -type f -exec file {} \; >.file-idx
 
     for TARGET in ${TARGETS[@]}; do
-        case $TARGET in
+        case ${TARGET} in
         x86_64*)
             grep "x86-64" .file-idx |
                 grep "not strip" |
@@ -237,7 +231,7 @@ strip_binaries() {
                 done
             ;;
         aarch64*)
-            cp -rf ${PREFIX}/${TARGET}/bin/strip ./stripp-a64
+            cp -rf ${PREFIX}/${TARGET}/bin/${TARGET}-strip ./stripp-a64
             grep "ARM" .file-idx | grep "aarch64" |
                 grep "not strip" |
                 tr ':' ' ' | awk '{print $1}' |
@@ -246,7 +240,7 @@ strip_binaries() {
                 done
             ;;
         arm*)
-            cp -rf ${PREFIX}/${TARGET}/bin/strip ./stripp-a32
+            cp -rf ${PREFIX}/${TARGET}/bin/${TARGET}-strip ./stripp-a32
             grep "ARM" .file-idx | grep "eabi" |
                 grep "not strip" |
                 tr ':' ' ' | awk '{print $1}' |
@@ -266,6 +260,8 @@ strip_binaries() {
 
 git_push() {
     send_info "<b>GitHub Action : </b><pre>Release into GitHub . . .</pre>"
+
+    # Use aarch64 target config
     GCC_CONFIG="$(${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-gcc -v 2>&1)"
     GCC_VERSION="$(${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-gcc --version | head -n1 | cut -d' ' -f4)"
     BINUTILS_VERSION="$(${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-ld --version | head -n1 | cut -d' ' -f5)"
@@ -283,6 +279,7 @@ git_push() {
     else
         git clone https://Diaz1401:${GITHUB_TOKEN}@github.com/Diaz1401/gcc-stable ${WORK_DIR}/gcc-repo -b main
     fi
+
     # Generate archive
     cd ${WORK_DIR}/gcc-repo
     cp -rf ${PREFIX}/* .
@@ -299,19 +296,43 @@ git_push() {
 }
 
 kernel() {
+    CURRENT_TARGET=${1}
+    CONFIG=""
+    ARCH=""
+
     send_info "<b>GitHub Action : </b><pre>Kernel build started . . .</pre>"
-    cd ${PREFIX_PGO}/${TARGETS[0]}/lib/bfd-plugins
-    ln -sr ../../libexec/gcc/${TARGETS[0]}/${GCC_VERSION}/liblto_plugin.so .
+
+    # Symlink plugin
+    cd ${PREFIX_PGO}/${CURRENT_TARGET}/lib/bfd-plugins
+    ln -sr ../../libexec/gcc/${CURRENT_TARGET}/${GCC_VERSION}/liblto_plugin.so .
     cd -
-    git clone --depth=1 -b kucing-2k24 https://github.com/Mengkernel/kernel_xiaomi_sm8250.git kernel
+
     cd kernel
-    mkdir -p out
-    ./scripts/config --file arch/arm64/configs/cat_defconfig \
-        -e CAT_OPTIMIZE \
-        -e LD_DEAD_CODE_DATA_ELIMINATION # -e LTO_GCC
-    PATH="${PREFIX_PGO}/${TARGET}/bin:${PATH}" make -j${NPROC} O=out CROSS_COMPILE=${TARGETS[0]}- cat_defconfig
-    PATH="${PREFIX_PGO}/${TARGET}/bin:${PATH}" make -j${NPROC} O=out CROSS_COMPILE=${TARGETS[0]}-
-    if [ -a out/arch/arm64/boot/Image ]; then
+    rm -rf out
+
+    case ${CURENT_TARGET} in
+    x86_64*)
+        ARCH=x86
+        CONFIG=defconfig
+        git fetch --depth=1 origin 115c8415cabae300a0c218fefaf5705c6830deda
+        git checkout -f FETCH_HEAD
+        ;;
+    aarch64*)
+        ARCH=arm64
+        CONFIG=cat_defconfig
+        git fetch --depth=1 origin 90681e12950fbcd0a6bc5bc4f05cc702a6dd6dda
+        git checkout -f FETCH_HEAD
+        ./scripts/config --file arch/arm64/configs/cat_defconfig \
+            -e LD_DEAD_CODE_DATA_ELIMINATION \
+            -e CAT_OPTIMIZE \
+            -e LTO_GCC
+        ;;
+    esac
+
+    PATH="${PREFIX_PGO}/${TARGET}/bin:${PATH}" make -j${NPROC} O=out CROSS_COMPILE=${CURRENT_TARGET}- ${CONFIG}
+    PATH="${PREFIX_PGO}/${TARGET}/bin:${PATH}" make -j${NPROC} O=out CROSS_COMPILE=${CURRENT_TARGET}-
+
+    if [ -a out/arch/${ARCH}/boot/*Image ]; then
         send_info "<b>GitHub Action : </b><pre>Kernel build finished ! ! !</pre>"
         cd -
     else
@@ -330,13 +351,14 @@ send_info "
 <b>Binutils </b><pre>${HEAD_BINUTILS}</pre>"
 build_zstd
 for TARGET in ${TARGETS[@]}; do
-    build_binutils
-    build_gcc
-    kernel
+    rm -rf ${PROFILES}/*
+    build_binutils ${TARGET}
+    build_gcc ${TARGET}
+    kernel ${TARGET}
     FINAL=true
-    build_binutils
-    build_gcc
+    build_binutils ${TARGET}
+    build_gcc ${TARGET}
 done
 strip_binaries
-# git_push
+git_push
 send_info "<b>GitHub Action : </b><pre>All job finished ! ! !</pre>"
