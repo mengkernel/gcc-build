@@ -5,31 +5,20 @@ echo "*        Download GCC & Binutils        *"
 echo "*****************************************"
 
 MASTER=false
-GCC10=false
 for ARGS in $@; do
     case $ARGS in
     master)
-        MASTER=true GCC10=false
-        ;;
-    gcc10)
-        GCC10=true MASTER=false
-        ;;
-    *)
-        GCC10=false MASTER=false
+        MASTER=true
         ;;
     esac
 done
-export MASTER GCC10
+export MASTER
 
 download() {
     if ${MASTER}; then
         git clone --depth=1 -b master git://sourceware.org/git/binutils-gdb.git binutils
         git clone --depth=1 -b master git://gcc.gnu.org/git/gcc.git gcc
         git clone --depth=1 -b dev https://github.com/facebook/zstd zstd
-    elif ${GCC10}; then
-        git clone --depth=1 -b binutils-2_42-branch https://github.com/Diaz1401/binutils-gdb.git binutils
-        git clone --depth=1 -b releases/gcc-10 https://github.com/Diaz1401/gcc gcc
-        git clone --depth=1 -b v1.5.6 https://github.com/facebook/zstd zstd
     else
         git clone --depth=1 -b binutils-2_42 git://sourceware.org/git/binutils-gdb.git binutils
         git clone --depth=1 -b releases/gcc-14.1.0 git://gcc.gnu.org/git/gcc.git gcc
@@ -37,13 +26,13 @@ download() {
     fi
     sed -i '/^development=/s/true/false/' binutils/bfd/development.sh
     cd gcc
+    git apply -3 ../patches/* || (echo " * Failed to apply patches * " && exit 1)
     ./contrib/download_prerequisites
-    cd -
-    mkdir kernel
-    cd kernel
+    mkdir -p ../kernel
+    cd ../kernel
     git init .
     git remote add origin https://github.com/Mengkernel/kernel_xiaomi_sm8250.git
-    cd -
+    cd ..
 }
 
 download

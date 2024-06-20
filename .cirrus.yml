@@ -14,5 +14,5 @@ task:
   timeout_in: 120m
   only_if: $CIRRUS_BRANCH == 'master'
   script:
-    - ./resources.sh gcc10
+    - ./resources.sh
     - ./build.sh

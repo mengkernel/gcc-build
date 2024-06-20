@@ -18,13 +18,20 @@ USE_FLAGS="-fprofile-use=${PROFILES} -fprofile-correction -fprofile-partial-trai
 BUILD_DATE="$(cat ${WORK_DIR}/gcc/gcc/DATESTAMP)"
 BUILD_DAY="$(date "+%d %B %Y")"
 BUILD_TAG="$(date +%Y%m%d-%H%M-%Z)"
-TARGETS=(aarch64-linux-gnu) # x86_64-linux-gnu
+TARGETS=(aarch64-linux-gnu x86_64-linux-gnu)
 HEAD_SCRIPT="$(git log -1 --oneline)"
 HEAD_GCC="$(git --git-dir gcc/.git log -1 --oneline)"
 HEAD_BINUTILS="$(git --git-dir binutils/.git log -1 --oneline)"
+GCC="${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-gcc"
+BINUTILS="${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-ld"
 PKG_VERSION="CAT"
+BINUTILS_VERSION=$(grep "^PACKAGE_VERSION=" "${WORK_DIR}/binutils/ld/configure" | grep -oP "'\K[^']+(?=')")
+FULL_VERSION=$(cat ${WORK_DIR}/gcc/gcc/BASE_VER)
+MAJOR_VERSION=$(echo ${FULL_VERSION} | cut -d '.' -f 1)
+KERNEL="${WORK_DIR}/kernel"
 MASTER=false
 FINAL=false
+
 for ARGS in $@; do
     case $ARGS in
     master)
@@ -36,7 +43,8 @@ done
 export PKG_VERSION WORK_DIR NPROC PREFIX OPT_FLAGS \
     BUILD_DATE BUILD_DAY BUILD_TAG TARGETS HEAD_SCRIPT \
     HEAD_GCC HEAD_BINUTILS MASTER FINAL PROFILES \
-    PREFIX_PGO GEN_FLAGS USE_FLAGS
+    PREFIX_PGO GEN_FLAGS USE_FLAGS GCC BINUTILS FULL_VERSION \
+    MAJOR_VERSION
 
 send_info() {
     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
@@ -55,7 +63,7 @@ send_file() {
 
 build_zstd() {
     #  send_info "<b>GitHub Action : </b><pre>Zstd build started . . .</pre>"
-    mkdir ${WORK_DIR}/build-zstd
+    mkdir -p ${WORK_DIR}/build-zstd
     cd ${WORK_DIR}/build-zstd
     cmake ${WORK_DIR}/zstd/build/cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}/zstd" |& tee -a build.log
     make -j${NPROC} |& tee -a build.log
@@ -63,29 +71,24 @@ build_zstd() {
 
     # check Zstd build status
     if [ -f "${PREFIX}/zstd/bin/zstd" ]; then
-        rm -rf ${WORK_DIR}/build-zstd
         #    send_info "<b>GitHub Action : </b><pre>Zstd build finished ! ! !</pre>"
-        cd -
+        true
     else
         send_info "<b>GitHub Action : </b><pre>Zstd build failed ! ! !</pre>"
-        send_file ./build.log "Zstd build.log"
-        cd -
+        send_file ${WORK_DIR}/build-zstd/build.log "Zstd build.log"
         exit 1
     fi
 }
 
 build_binutils() {
     CURENT_TARGET=${1}
+    #  send_info "<b>GitHub Action : </b><pre>Binutils build started . . .</pre><b>Target : </b><pre>[${CURENT_TARGET}]</pre>"
 
-    #  send_info "<b>GitHub Action : </b><pre>Binutils build started . . .</pre><b>Target : </b><pre>[${TARGET}]</pre>"
-
-    if ${FINAL}; then
-        rm -rf ${WORK_DIR}/build-binutils
-    fi
-    mkdir ${WORK_DIR}/build-binutils
+    rm -rf ${WORK_DIR}/build-binutils
+    mkdir -p ${WORK_DIR}/build-binutils
     cd ${WORK_DIR}/build-binutils
 
-    # Check compiler first
+    # Check compiler
     gcc -v |& tee -a build.log
     ld -v |& tee -a build.log
 
@@ -119,30 +122,27 @@ build_binutils() {
         --quiet |& tee -a build.log
     make -j${NPROC} |& tee -a build.log
     make install -j${NPROC} |& tee -a build.log
+
     # check Binutils build status
     if [ -f "${PREFIX_ADD}/${CURENT_TARGET}/bin/${CURENT_TARGET}-ld" ]; then
         #    send_info "<b>GitHub Action : </b><pre>Binutils build finished ! ! !</pre>"
-        cd -
+        true
     else
         send_info "<b>GitHub Action : </b><pre>Binutils build failed ! ! !</pre>"
-        send_file ./build.log "Binutils build.log"
-        cd -
+        send_file ${WORK_DIR}/build-binutils/build.log "Binutils build.log"
         exit 1
     fi
 }
 
 build_gcc() {
-    #  send_info "<b>GitHub Action : </b><pre>GCC build started . . .</pre><b>Target : </b><pre>[${TARGET}]</pre>"
-
     CURENT_TARGET=${1}
+    #  send_info "<b>GitHub Action : </b><pre>GCC build started . . .</pre><b>Target : </b><pre>[${CURENT_TARGET}]</pre>"
 
-    if ${FINAL}; then
-        rm -rf ${WORK_DIR}/build-gcc
-    fi
-    mkdir ${WORK_DIR}/build-gcc
+    rm -rf ${WORK_DIR}/build-gcc
+    mkdir -p ${WORK_DIR}/build-gcc
     cd ${WORK_DIR}/build-gcc
 
-    # Check compiler first
+    # Check compiler
     gcc -v |& tee -a build.log
     ld -v |& tee -a build.log
 
@@ -206,19 +206,17 @@ build_gcc() {
     # check GCC build status
     if [ -f "${PREFIX_ADD}/${CURENT_TARGET}/bin/${CURENT_TARGET}-gcc" ]; then
         #    send_info "<b>GitHub Action : </b><pre>GCC build finished ! ! !</pre>"
-        cd -
+        true
     else
         send_info "<b>GitHub Action : </b><pre>GCC build failed ! ! !</pre>"
-        send_file ./build.log "GCC build.log"
-        cd -
+        send_file ${WORK_DIR}/build-gcc/build.log "GCC build.log"
         exit 1
     fi
 }
 
 strip_binaries() {
-    #  send_info "<b>GitHub Action : </b><pre>Strip binaries . . .</pre>"
-
-    find install -type f -exec file {} \; >.file-idx
+    cd ${PREFIX}
+    find . -type f -exec file {} \; >.file-idx
 
     for TARGET in ${TARGETS[@]}; do
         case ${TARGET} in
@@ -251,64 +249,45 @@ strip_binaries() {
         esac
     done
 
-    # clean unused files
-    find install -name *.cmake -delete
-    find install -name *.la -delete
-    find install -name *.a -delete
     rm -rf stripp-* .file-idx
 }
 
 git_push() {
     send_info "<b>GitHub Action : </b><pre>Release into GitHub . . .</pre>"
 
-    # Use aarch64 target config
-    GCC_CONFIG="$(${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-gcc -v 2>&1)"
-    GCC_VERSION="$(${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-gcc --version | head -n1 | cut -d' ' -f4)"
-    BINUTILS_VERSION="$(${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-ld --version | head -n1 | cut -d' ' -f5)"
-    MESSAGE="GCC: ${GCC_VERSION}-${BUILD_DATE}, Binutils: ${BINUTILS_VERSION}"
-
-    # symlink liblto_plugin.so
-    cd ${PREFIX}/${TARGETS[0]}/lib/bfd-plugins
-    ln -sr ../../libexec/gcc/${TARGETS[0]}/${GCC_VERSION}/liblto_plugin.so .
-    cd -
-
-    git config --global user.name github-actions[bot]
-    git config --global user.email github-actions[bot]@users.noreply.github.com
     if ${MASTER}; then
         git clone https://Diaz1401:${GITHUB_TOKEN}@github.com/Mengkernel/gcc ${WORK_DIR}/gcc-repo -b main
     else
         git clone https://Diaz1401:${GITHUB_TOKEN}@github.com/Diaz1401/gcc-stable ${WORK_DIR}/gcc-repo -b main
     fi
 
-    # Generate archive
     cd ${WORK_DIR}/gcc-repo
-    cp -rf ${PREFIX}/* .
+    GCC_CONFIG="$(${GCC} -v 2>&1)"
+    MESSAGE="GCC: ${MAJOR_VERSION}-${BUILD_DATE}, Binutils: ${BINUTILS_VERSION}"
+    git config --global user.name github-actions[bot]
+    git config --global user.email github-actions[bot]@users.noreply.github.com
+
+    # Generate archive
+    cp -rf ${PREFIX}/*-linux-gnu .
     tar -I"${PREFIX}/zstd/bin/zstd --ultra -22 -T0" -cf gcc.tar.zst *
     cat README |
-        sed s/GCCVERSION/$(echo ${GCC_VERSION}-${BUILD_DATE})/g |
-        sed s/BINUTILSVERSION/$(echo ${BINUTILS_VERSION})/g >README.md
+        sed s:GCCVERSION:${MAJOR_VERSION}-${BUILD_DATE}:g |
+        sed s:BINUTILSVERSION:${BINUTILS_VERSION}:g >README.md
     git commit --allow-empty -as \
         -m "${MESSAGE}" \
         -m "${GCC_CONFIG}"
     git push origin main
     hub release create -a gcc.tar.zst -m "${MESSAGE}" ${BUILD_TAG}
-    cd -
 }
 
-kernel() {
+compile_kernel() {
     CURRENT_TARGET=${1}
-    CONFIG=""
-    ARCH=""
-
     send_info "<b>GitHub Action : </b><pre>Kernel build started . . .</pre>"
 
-    # Symlink plugin
+    # Symlink liblto_plugin.so
     cd ${PREFIX_PGO}/${CURRENT_TARGET}/lib/bfd-plugins
-    ln -sr ../../libexec/gcc/${CURRENT_TARGET}/${GCC_VERSION}/liblto_plugin.so .
-    cd -
-
-    cd kernel
-    rm -rf out
+    ln -sr ../../libexec/gcc/${CURRENT_TARGET}/${FULL_VERSION}/liblto_plugin.so .
+    cd ${KERNEL}
 
     case ${CURENT_TARGET} in
     x86_64*)
@@ -320,7 +299,7 @@ kernel() {
     aarch64*)
         ARCH=arm64
         CONFIG=cat_defconfig
-        git fetch --depth=1 origin 90681e12950fbcd0a6bc5bc4f05cc702a6dd6dda
+        git fetch --depth=1 origin cbd2f733e8145ae75d0d5d4f04212e8b3ebbb134
         git checkout -f FETCH_HEAD
         ./scripts/config --file arch/arm64/configs/cat_defconfig \
             -e LD_DEAD_CODE_DATA_ELIMINATION \
@@ -329,15 +308,16 @@ kernel() {
         ;;
     esac
 
-    PATH="${PREFIX_PGO}/${TARGET}/bin:${PATH}" make -j${NPROC} O=out CROSS_COMPILE=${CURRENT_TARGET}- ${CONFIG}
-    PATH="${PREFIX_PGO}/${TARGET}/bin:${PATH}" make -j${NPROC} O=out CROSS_COMPILE=${CURRENT_TARGET}-
+    PATH="${PREFIX_PGO}/${CURRENT_TARGET}/bin:${PATH}" \
+        make -j${NPROC} O=out CROSS_COMPILE=${CURRENT_TARGET}- ${CONFIG}
+    PATH="${PREFIX_PGO}/${CURRENT_TARGET}/bin:${PATH}" \
+        make -j${NPROC} O=out CROSS_COMPILE=${CURRENT_TARGET}-
 
-    if [ -a out/arch/${ARCH}/boot/*Image ]; then
+    if [ -a ${KERNEL}/out/arch/${ARCH}/boot/*Image* ]; then
         send_info "<b>GitHub Action : </b><pre>Kernel build finished ! ! !</pre>"
-        cd -
+        rm -rf ${KERNEL}/out
     else
         send_info "<b>GitHub Action : </b><pre>Kernel build failed ! ! !</pre>"
-        cd -
         exit 1
     fi
 }
@@ -354,10 +334,14 @@ for TARGET in ${TARGETS[@]}; do
     rm -rf ${PROFILES}/*
     build_binutils ${TARGET}
     build_gcc ${TARGET}
-    kernel ${TARGET}
+    compile_kernel ${TARGET}
     FINAL=true
     build_binutils ${TARGET}
     build_gcc ${TARGET}
+
+    # symlink liblto_plugin.so
+    cd ${PREFIX}/${TARGET}/lib/bfd-plugins
+    ln -sr ../../libexec/gcc/${TARGET}/${FULL_VERSION}/liblto_plugin.so .
 done
 strip_binaries
 git_push
