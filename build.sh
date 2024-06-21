@@ -26,7 +26,7 @@ GCC="${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-gcc"
 BINUTILS="${PREFIX}/${TARGETS[0]}/bin/${TARGETS[0]}-ld"
 PKG_VERSION="CAT"
 BINUTILS_VERSION=$(grep "^PACKAGE_VERSION=" "${WORK_DIR}/binutils/ld/configure" | grep -oP "'\K[^']+(?=')")
-FULL_VERSION=$(cat ${WORK_DIR}/gcc/gcc/BASE_VER)
+FULL_VERSION=$(cat "${WORK_DIR}/gcc/gcc/BASE-VER")
 MAJOR_VERSION=$(echo ${FULL_VERSION} | cut -d '.' -f 1)
 KERNEL="${WORK_DIR}/kernel"
 MASTER=false
