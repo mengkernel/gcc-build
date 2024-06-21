@@ -115,6 +115,7 @@ build_binutils() {
         --enable-threads \
         --enable-64-bit-bfd \
         --prefix=${PREFIX_ADD}/${CURENT_TARGET} \
+        --program-prefix=${CURENT_TARGET}- \
         --target=${CURENT_TARGET} \
         --with-pkgversion="${PKG_VERSION} Binutils" \
         --with-sysroot \
@@ -189,6 +190,7 @@ build_gcc() {
         --enable-linux-futex \
         --enable-threads=posix \
         --prefix=${PREFIX_ADD}/${CURENT_TARGET} \
+        --program-prefix=${CURENT_TARGET}- \
         --target=${CURENT_TARGET} \
         --with-gnu-as \
         --with-gnu-ld \
