@@ -151,7 +151,7 @@ build_gcc() {
         EXTRA_CONF="--without-cuda-driver"
         ;;
     aarch64*)
-        EXTRA_CONF="--enable-fix-cortex-a53-835769 --enable-fix-cortex-a53-843419"
+        EXTRA_CONF="--enable-fix-cortex-a53-835769 --enable-fix-cortex-a53-843419 --with-headers=/usr/include"
         ;;
     esac
 
@@ -192,7 +192,6 @@ build_gcc() {
         --target=${CURENT_TARGET} \
         --with-gnu-as \
         --with-gnu-ld \
-        --with-headers=/usr/include \
         --with-newlib \
         --with-pkgversion="${PKG_VERSION} GCC" \
         --with-sysroot \
