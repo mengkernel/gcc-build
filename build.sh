@@ -102,18 +102,20 @@ build_binutils() {
 
     env CFLAGS="${OPT_FLAGS} ${ADD}" CXXFLAGS="${OPT_FLAGS} ${ADD}" \
         ../binutils/configure \
+        --disable-checking \
         --disable-compressed-debug-sections \
-        --disable-docs \
+        --disable-dependency-tracking \
         --disable-gdb \
         --disable-gold \
         --disable-gprofng \
         --disable-multilib \
         --disable-nls \
         --disable-shared \
-        --enable-ld=default \
-        --enable-plugins \
-        --enable-threads \
+        --enable-64-bit-archive \
         --enable-64-bit-bfd \
+        --enable-ld \
+        --enable-plugins \
+        --enable-threads=posix \
         --prefix=${PREFIX_ADD}/${CURENT_TARGET} \
         --program-prefix=${CURENT_TARGET}- \
         --target=${CURENT_TARGET} \
@@ -168,18 +170,14 @@ build_gcc() {
         ../gcc/configure \
         --disable-bootstrap \
         --disable-checking \
-        --disable-decimal-float \
-        --disable-docs \
+        --disable-cet \
         --disable-gcov \
-        --disable-libcc1 \
-        --disable-libffi \
-        --disable-libgomp \
+        --disable-libada \
+        --disable-libgm2 \
         --disable-libquadmath \
-        --disable-libsanitizer \
-        --disable-libssp \
+        --disable-libquadmath-support \
         --disable-libstdcxx-debug \
         --disable-libstdcxx-pch \
-        --disable-libvtv \
         --disable-multilib \
         --disable-nls \
         --disable-shared \
@@ -188,6 +186,7 @@ build_gcc() {
         --enable-gnu-indirect-function \
         --enable-languages=c,c++ \
         --enable-linux-futex \
+        --enable-libssp \
         --enable-threads=posix \
         --prefix=${PREFIX_ADD}/${CURENT_TARGET} \
         --program-prefix=${CURENT_TARGET}- \
@@ -302,8 +301,15 @@ compile_kernel() {
         CONFIG=cat_defconfig
         git fetch --depth=1 origin cbd2f733e8145ae75d0d5d4f04212e8b3ebbb134
         git checkout -f FETCH_HEAD
+        wget -qO calcsum.cpp https://raw.githubusercontent.com/openeuler-mirror/A-FOT/master/GcovSummaryAddTool.cpp
+        g++ -o calcsum calcsum.cpp
+        mkdir -p out
+        tar xf profiles.tar.gz -C out
+        find out -name "*.gcda" > list.txt
+        ./calcsum list.txt
         ./scripts/config --file arch/arm64/configs/cat_defconfig \
             -e LD_DEAD_CODE_DATA_ELIMINATION \
+            -e PGO_GEN -e PGO_USE \
             -e CAT_OPTIMIZE \
             -e LTO_GCC
         ;;

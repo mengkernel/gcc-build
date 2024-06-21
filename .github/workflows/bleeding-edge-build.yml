@@ -1,9 +1,6 @@
 name: Bleeding Edge GCC Build
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
   schedule:
     - cron: '0 23 * * 6'
