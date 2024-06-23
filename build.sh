@@ -299,13 +299,13 @@ compile_kernel() {
     aarch64*)
         ARCH=arm64
         CONFIG=cat_defconfig
-        git fetch --depth=1 origin cbd2f733e8145ae75d0d5d4f04212e8b3ebbb134
+        git fetch --depth=1 origin c5d09825d20d3cd8e7c9a8b07a94adc9a6195e23
         git checkout -f FETCH_HEAD
         wget -qO calcsum.cpp https://raw.githubusercontent.com/openeuler-mirror/A-FOT/master/GcovSummaryAddTool.cpp
         g++ -o calcsum calcsum.cpp
         mkdir -p out
         tar xf profiles.tar.gz -C out
-        find out -name "*.gcda" > list.txt
+        find out -name "*.gcda" >list.txt
         ./calcsum list.txt
         ./scripts/config --file arch/arm64/configs/cat_defconfig \
             -e LD_DEAD_CODE_DATA_ELIMINATION \
