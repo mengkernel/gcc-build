@@ -1,0 +1,29 @@
+From 5fc458e963d0abb956c59ec11e34956ecb57b951 Mon Sep 17 00:00:00 2001
+From: William Douglas <william.douglas@intel.com>
+Date: Tue, 5 Apr 2022 10:12:58 -0700
+Subject: [PATCH] Ignore -Werror if ${GCC_IGNORE_WERROR} envvar set
+
+-Werror should be set only by developers, not consumers of a project's
+source code.  By providing this environment variable, the package build
+system can signal that -Werror should never be used without the need to
+patch each individual package build system.
+---
+ gcc/opts.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/gcc/opts.c b/gcc/opts.c
+index 731625289381c..b1264845ac8e5 100644
+--- a/gcc/opts.c
++++ b/gcc/opts.c
+@@ -2319,7 +2319,10 @@ common_handle_option (struct gcc_options *opts,
+       break;
+ 
+     case OPT_Werror:
+-      dc->warning_as_error_requested = value;
++      if (getenv("GCC_IGNORE_WERROR"))
++	dc->warning_as_error_requested = false;
++      else
++	dc->warning_as_error_requested = value;
+       break;
+ 
+     case OPT_Werror_:
