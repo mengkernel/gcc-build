@@ -65,7 +65,10 @@ build_zstd() {
     #  send_info "<b>GitHub Action : </b><pre>Zstd build started . . .</pre>"
     mkdir -p ${WORK_DIR}/build-zstd
     cd ${WORK_DIR}/build-zstd
-    cmake ${WORK_DIR}/zstd/build/cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}/zstd" |& tee -a build.log
+    cmake ${WORK_DIR}/zstd/build/cmake \
+        -DCMAKE_INSTALL_PREFIX="${PREFIX}/zstd" \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache |& tee -a build.log
     make -j${NPROC} |& tee -a build.log
     make install -j${NPROC} |& tee -a build.log
 
@@ -100,7 +103,9 @@ build_binutils() {
         PREFIX_ADD="${PREFIX_PGO}"
     fi
 
-    env CFLAGS="${OPT_FLAGS} ${ADD}" CXXFLAGS="${OPT_FLAGS} ${ADD}" \
+    env CC="ccache gcc" CXX="ccache g++" \
+        CFLAGS="${OPT_FLAGS} ${ADD}" \
+        CXXFLAGS="${OPT_FLAGS} ${ADD}" \
         ../binutils/configure \
         --disable-checking \
         --disable-compressed-debug-sections \
@@ -166,7 +171,9 @@ build_gcc() {
         PREFIX_ADD="${PREFIX_PGO}"
     fi
 
-    env CFLAGS="${OPT_FLAGS} ${ADD}" CXXFLAGS="${OPT_FLAGS} ${ADD}" \
+    env CC="ccache gcc" CXX="ccache g++" \
+        CFLAGS="${OPT_FLAGS} ${ADD}" \
+        CXXFLAGS="${OPT_FLAGS} ${ADD}" \
         ../gcc/configure \
         --disable-bootstrap \
         --disable-checking \
