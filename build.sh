@@ -12,7 +12,7 @@ PREFIX="${WORK_DIR}/install"
 PREFIX_PGO="${WORK_DIR}/pgo"
 PROFILES="${PREFIX_PGO}/profiles"
 mkdir -p profiles
-OPT_FLAGS="-pipe -O3 -fipa-pta -fgraphite -fgraphite-identity -floop-nest-optimize -fno-semantic-interposition -ffunction-sections -fdata-sections -Wl,--gc-sections"
+OPT_FLAGS="-pipe -O3 -flto=${NPROC} -fipa-pta -fgraphite -fgraphite-identity -floop-nest-optimize -fno-semantic-interposition -ffunction-sections -fdata-sections -Wl,--gc-sections"
 GEN_FLAGS="-fprofile-generate=${PROFILES}"
 USE_FLAGS="-fprofile-use=${PROFILES} -fprofile-correction -fprofile-partial-training -Wno-error=coverage-mismatch"
 BUILD_DATE="$(cat ${WORK_DIR}/gcc/gcc/DATESTAMP)"
