@@ -31,7 +31,7 @@ download() {
     mkdir -p ../kernel
     cd ../kernel
     git init .
-    git remote add origin https://github.com/Mengkernel/kernel_xiaomi_sm8250.git
+    git remote add origin https://github.com/mengkernel/kernel_xiaomi_sm8250.git
     cd ..
 }
 

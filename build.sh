@@ -256,7 +256,7 @@ git_push() {
     send_info "<b>GitHub Action : </b><pre>Release into GitHub . . .</pre>"
 
     if ${MASTER}; then
-        git clone https://Diaz1401:${GITHUB_TOKEN}@github.com/Mengkernel/gcc ${WORK_DIR}/gcc-repo -b main
+        git clone https://Diaz1401:${GITHUB_TOKEN}@github.com/mengkernel/gcc ${WORK_DIR}/gcc-repo -b main
     else
         git clone https://Diaz1401:${GITHUB_TOKEN}@github.com/Diaz1401/gcc-stable ${WORK_DIR}/gcc-repo -b main
     fi
