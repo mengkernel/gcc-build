@@ -35,7 +35,7 @@ This repository contains the script needed to compile bare metal GCC for various
 
 Running this script is quite simple. We start by cloning this repository:
 ```bash
-git clone https://github.com/Diaz1401/gcc-build.git gcc-build
+git clone https://github.com/mengkernel/gcc-build.git gcc-build
 ```
 ```bash
 ./build.sh <branch>
@@ -49,7 +49,7 @@ git clone https://github.com/Diaz1401/gcc-build.git gcc-build
 
 ## Looking for precompiled toolchains?
 
-* **[Bleeding Edge](https://github.com/Diaz1401/gcc)**
+* **[Bleeding Edge](https://github.com/mengkernel/gcc)**
 * **[Release](https://github.com/Diaz1401/gcc-stable)**
 
 ## Contributing to this repo
