@@ -271,7 +271,7 @@ git_push() {
 
     cd ${WORK_DIR}/gcc-repo
     GCC_CONFIG="$(${GCC} -v 2>&1)"
-    MESSAGE="GCC: ${MAJOR_VERSION}-${BUILD_DATE}, Binutils: ${BINUTILS_VERSION}"
+    MESSAGE="GCC: ${FULL_VERSION}-${BUILD_DATE}, Binutils: ${BINUTILS_VERSION}"
     git config --global user.name github-actions[bot]
     git config --global user.email github-actions[bot]@users.noreply.github.com
 
@@ -279,7 +279,7 @@ git_push() {
     cp -rf ${PREFIX}/*-linux-gnu .
     tar -I"${PREFIX}/zstd/bin/zstd --ultra -22 -T0" -cf gcc.tar.zst *
     cat README |
-        sed s:GCCVERSION:${MAJOR_VERSION}-${BUILD_DATE}:g |
+        sed s:GCCVERSION:${FULL_VERSION}-${BUILD_DATE}:g |
         sed s:BINUTILSVERSION:${BINUTILS_VERSION}:g >README.md
     git commit --allow-empty -as \
         -m "${MESSAGE}" \
