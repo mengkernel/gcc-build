@@ -50,7 +50,7 @@ git clone https://github.com/mengkernel/gcc-build.git gcc-build
 
 ## Looking for precompiled toolchains?
 
-* **[Bleeding Edge](https://github.com/mengkernel/gcc)**
+* **[Weekly](https://github.com/mengkernel/gcc)**
 * **[Release](https://github.com/mengkernel/gcc-stable)**
 
 ## Contributing to this repo
