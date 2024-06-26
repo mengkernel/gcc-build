@@ -257,7 +257,6 @@ strip_binaries() {
     done
 
     rm -rf stripp-* .file-idx
-    find . -name '*.a' -delete -or -name '*.la' -delete
 }
 
 git_push() {
