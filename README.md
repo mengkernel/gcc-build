@@ -38,7 +38,8 @@ Running this script is quite simple. We start by cloning this repository:
 git clone https://github.com/mengkernel/gcc-build.git gcc-build
 ```
 ```bash
-./build.sh <branch>
+./resources.sh master
+./build.sh master
 ```
 
 ## Credits
@@ -50,7 +51,7 @@ git clone https://github.com/mengkernel/gcc-build.git gcc-build
 ## Looking for precompiled toolchains?
 
 * **[Bleeding Edge](https://github.com/mengkernel/gcc)**
-* **[Release](https://github.com/Diaz1401/gcc-stable)**
+* **[Release](https://github.com/mengkernel/gcc-stable)**
 
 ## Contributing to this repo
 
