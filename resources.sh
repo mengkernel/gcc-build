@@ -31,7 +31,7 @@ download() {
         git clone --depth=1 -b v1.5.6 https://github.com/facebook/zstd zstd
         cd gcc
         git apply -3 \
-            ../patches/0001* \
+            ../patches/0005* \
             ../patches/0002* \
             ../patches/0004* \
             || (echo " * Failed to apply patches * " && exit 1)

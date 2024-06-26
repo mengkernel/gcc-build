@@ -1,0 +1,45 @@
+From 691bf6e1dbea804ed70cdb834a1f5555f7528885 Mon Sep 17 00:00:00 2001
+From: xiongzhou4 <xiongzhou4@huawei.com>
+Date: Thu, 1 Jun 2023 09:28:27 +0800
+Subject: [PATCH] Add fkernel-pgo option to support PGO kernel compilation.
+
+If specified, disable TLS setting of instrumentation variables in
+gcc/tree-profile.c, as kernel does not support TLS.
+---
+ gcc/common.opt     | 4 ++++
+ gcc/tree-profile.c | 4 +++-
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/gcc/common.opt b/gcc/common.opt
+index 4a3f09d9e1f1..703221ecb49e 100644
+--- a/gcc/common.opt
++++ b/gcc/common.opt
+@@ -2280,6 +2280,10 @@ fprofile-info-section=
+ Common Joined RejectNegative Var(profile_info_section)
+ Register the profile information in the specified section instead of using a constructor/destructor.
+ 
++fkernel-pgo
++Common Var(flag_kernel_pgo) Optimization Init(0)
++Disable TLS setting of instrumentation variables to support PGO kernel compilation in -fprofile-generate, as kernel does not support TLS.
++
+ fprofile-partial-training
+ Common Var(flag_profile_partial_training) Optimization
+ Do not assume that functions never executed during the train run are cold.
+diff --git a/gcc/tree-profile.c b/gcc/tree-profile.c
+index 64d25cf4d178..a91ed6b354e9 100644
+--- a/gcc/tree-profile.c
++++ b/gcc/tree-profile.c
+@@ -108,7 +108,9 @@ init_ic_make_global_vars (void)
+   DECL_ARTIFICIAL (ic_tuple_var) = 1;
+   DECL_INITIAL (ic_tuple_var) = NULL;
+   DECL_EXTERNAL (ic_tuple_var) = 1;
+-  if (targetm.have_tls)
++  /* Disable TLS setting when compiling kernel in -fprofile-generate,
++     as kernel does not support TLS. */
++  if (targetm.have_tls && !flag_kernel_pgo)
+     set_decl_tls_model (ic_tuple_var, decl_default_tls_model (ic_tuple_var));
+ }
+ 
+-- 
+2.45.1
+
