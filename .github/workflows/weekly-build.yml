@@ -11,7 +11,9 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container:
+      image: diazaji/debian:toolchain
     steps:
     - uses: actions/checkout@v4
     - name: Setup ccache
@@ -19,16 +21,6 @@ jobs:
       with:
         key: ccache-gcc-master
         max-size: 4G
-    - name: Install dependencies
-      shell: sudo bash --noprofile --norc -e -o pipefail {0}
-      run: |
-        apt update && apt upgrade -y && apt install -y --no-install-recommends lsb-release wget \
-        software-properties-common gnupg bc binutils-dev u-boot-tools bison gcc g++ ca-certificates ccache \
-        cmake curl file flex patchelf libelf-dev libssl-dev make python3-all-dev texinfo xz-utils \
-        zlib1g-dev hub help2man locales ca-certificates build-essential ncurses-dev gperf patch libtool \
-        automake libncurses5-dev gawk subversion expat libexpat1-dev binutils-dev bc libcap-dev autoconf \
-        libgmp-dev pkg-config libmpc-dev libmpfr-dev autopoint gettext git txt2man liblzma-dev libz-dev \
-        mercurial tar zstd locales libzstd-dev gcc-multilib g++-multilib
     - name: Force safe directory
       run: git config --global --add safe.directory '*'
     - name: Download Resources
