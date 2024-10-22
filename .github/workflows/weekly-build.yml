@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: diazaji/debian:toolchain
+      image: diazaji/ubuntu:toolchain
     steps:
     - uses: actions/checkout@v4
     - name: Setup ccache

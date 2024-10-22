@@ -309,15 +309,19 @@ compile_kernel() {
         CONFIG=cat_defconfig
         git fetch --depth=1 origin aaea6b7290618ecbbb61ea9d314acf6a7957dbe2
         git checkout -f FETCH_HEAD
-        wget -qO calcsum.cpp https://raw.githubusercontent.com/openeuler-mirror/A-FOT/master/GcovSummaryAddTool.cpp
-        g++ -o calcsum calcsum.cpp
-        mkdir -p out
-        tar xf profiles.tar.gz -C out
-        find out -name "*.gcda" >list.txt
-        ./calcsum list.txt
+        # wget -qO calcsum.cpp https://raw.githubusercontent.com/openeuler-mirror/A-FOT/master/GcovSummaryAddTool.cpp
+        # g++ -o calcsum calcsum.cpp
+        # mkdir -p out
+        # tar xf profiles.tar.gz -C out
+        # find out -name "*.gcda" >list.txt
+        # ./calcsum list.txt
+        # ./scripts/config --file arch/arm64/configs/cat_defconfig \
+        #     -e LD_DEAD_CODE_DATA_ELIMINATION \
+        #     -e PGO_GEN -e PGO_USE \
+        #     -e CAT_OPTIMIZE \
+        #     -e LTO_GCC
         ./scripts/config --file arch/arm64/configs/cat_defconfig \
             -e LD_DEAD_CODE_DATA_ELIMINATION \
-            -e PGO_GEN -e PGO_USE \
             -e CAT_OPTIMIZE \
             -e LTO_GCC
         ;;
